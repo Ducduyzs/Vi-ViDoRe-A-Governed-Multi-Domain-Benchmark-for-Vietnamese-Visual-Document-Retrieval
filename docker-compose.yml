@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  vi-vidore:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vi-vidore:latest
+    container_name: vi-vidore
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - CUDA_VISIBLE_DEVICES=0
+      - PYTHONUNBUFFERED=1
+      - TOKENIZERS_PARALLELISM=false
+    volumes:
+      - ./:/workspace
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    working_dir: /workspace
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: ["bash"]
+    stdin_open: true
+    tty: true
+
+  # Development service with Jupyter
+  vi-vidore-jupyter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vi-vidore:latest
+    container_name: vi-vidore-jupyter
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - JUPYTER_TOKEN=vi-vidore
+    volumes:
+      - ./:/workspace
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    working_dir: /workspace
+    ports:
+      - "8888:8888"
+    command: >
+      bash -c "python3 -m pip install jupyterlab &&
+               jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='vi-vidore'"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Evaluation service (run baselines)
+  vi-vidore-eval:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vi-vidore:latest
+    container_name: vi-vidore-eval
+    runtime: nvidia
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    volumes:
+      - ./:/workspace
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    working_dir: /workspace
+    command: >
+      bash -c "python3 scripts/03_run_baselines.py --split test"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  # Build governed benchmark
+  vi-vidore-build:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: vi-vidore:latest
+    container_name: vi-vidore-build
+    runtime: nvidia
+    volumes:
+      - ./:/workspace
+    working_dir: /workspace
+    command: >
+      bash -c "python3 scripts/05_build_governed_benchmark.py --reset-output"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

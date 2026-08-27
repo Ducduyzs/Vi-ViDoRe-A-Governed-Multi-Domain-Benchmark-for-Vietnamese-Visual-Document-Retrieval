@@ -1,0 +1,83 @@
+# Pre-commit hooks for Vi-ViDoRe
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # Ruff - fast Python linter (replaces flake8, isort, pyupgrade)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
+        args: [--line-length=100]
+
+  # Black - code formatter (backup, Ruff handles formatting)
+  # - repo: https://github.com/psf/black
+  #   rev: 24.4.2
+  #   hooks:
+  #     - id: black
+  #       args: [--line-length=100]
+
+  # MyPy - static type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - torch
+          - transformers
+          - sentence-transformers
+          - numpy
+          - pandas
+          - pydantic
+        args: [--strict, --ignore-missing-imports, --disallow-untyped-defs]
+
+  # PyTest - run fast unit tests on commit
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: debug-logger
+      - id: detect-private-key
+
+  # Validate JSON files
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-json
+        files: \.(json|jsonl)$
+
+  # Validate YAML files
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-yaml
+        files: \.(yaml|yml)$
+
+  # Bandit - security linting
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.8
+    hooks:
+      - id: bandit
+        args: [-r, src/, -ll, --skip=B101,B601]
+
+  # Check for large files
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+        args: [--maxkb=5000]
+
+# CI-only hooks (run in CI, not on local commit)
+ci:
+  autofix_commit_msg: "style: auto-fix from pre-commit"
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "chore: update pre-commit hooks"
+  autoupdate_schedule: weekly

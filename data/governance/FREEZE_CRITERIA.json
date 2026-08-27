@@ -1,0 +1,18 @@
+{
+  "benchmark_version": "vi-vidore-governed-v0.1-candidate",
+  "required_test_domains": ["education", "legal", "financial", "healthcare"],
+  "min_test_pages_per_domain": 10,
+  "min_test_source_groups_per_domain": 2,
+  "min_test_queries": 500,
+  "min_test_queries_per_domain": 50,
+  "min_human_written_ratio": 0.4,
+  "min_test_scanned_target_queries": 20,
+  "min_test_queries_per_required_page_type": 20,
+  "required_query_page_types": ["text_heavy", "table_heavy", "chart_heavy", "form_or_template"],
+  "required_independent_judgments_per_pair": 2,
+  "minimum_agreement": 0.67,
+  "require_verified_redistribution_for_embedded_files": true,
+  "require_complete_test_documents": true,
+  "require_zero_group_leakage": true,
+  "require_zero_exact_duplicates": true
+}

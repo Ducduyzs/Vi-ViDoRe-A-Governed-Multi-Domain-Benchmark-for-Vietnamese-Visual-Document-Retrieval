@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use Vi-ViDoRe benchmark or code, please cite it as below."
+authors:
+  - family-names: "Anonymous"
+    given-names: "Anonymous"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+title: "Vi-ViDoRe: A Governed Vietnamese Visual Document Retrieval Benchmark"
+version: "0.1.0-candidate"
+doi: ""
+date-released: "2026-08-27"
+url: "https://github.com/anonymous/vi-vidore"
+repository-code: "https://github.com/anonymous/vi-vidore"
+license: "MIT"
+license-url: "https://opensource.org/licenses/MIT"
+keywords:
+  - "visual document retrieval"
+  - "multi-vector retrieval"
+  - "ColPali"
+  - "Vietnamese"
+  - "benchmark"
+  - "information retrieval"
+  - "late interaction"
+preferred-citation:
+  type: "conference-paper"
+  authors:
+    - family-names: "Anonymous"
+      given-names: "Anonymous"
+  title: "Vi-ViDoRe: A Governed Vietnamese Visual Document Retrieval Benchmark"
+  venue: "Under Review"
+  year: 2026
+  doi: ""
+  url: ""
+  abstract: "Vi-ViDoRe is the first human-validated Vietnamese visual document retrieval benchmark with governed data practices, supporting multi-vector late-interaction models like ColPali and ColQwen."
