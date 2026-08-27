@@ -1,109 +1,251 @@
-# Attribution-Risk-Aware Adaptive Hierarchical Retrieval
+# Vi-ViDoRe: A Governed Multi-Domain Benchmark for Vietnamese Visual Document Retrieval
 
-Verifiable question answering over scientific PDFs. Context may expand upward
-(child -> parent -> section) for completeness, but every generated claim must
-remain attributable to a specific leaf passage: **claim-to-leaf attribution
-risk controls retrieval and expansion before the answer is trusted**.
+Vi-ViDoRe is a governed benchmark for evaluating text, dense, hybrid, and
+vision-language retrieval over real Vietnamese PDF documents. It focuses on
+finding the correct evidence page for a Vietnamese query across legal,
+financial, healthcare, and education domains.
 
-Former working title: EDAHR (Evidence-Density-Aware Adaptive Hierarchical
-Retrieval); the evidence-density features survive as policy inputs.
+> **Status:** benchmark candidate — infrastructure is implemented, but the
+> dataset is not frozen or publication-ready until the remaining legal review,
+> human query authoring, and double-annotation requirements are completed.
 
-## Pipeline
+## Research scope
+
+Given a Vietnamese query and a collection of PDF pages, a system must rank the
+pages that contain relevant evidence.
 
 ```text
-Scientific PDFs
-  -> Docling layout/table-aware parsing
-  -> document / section / parent / child hierarchy
-  -> contextualized child representations
-  -> BGE-M3 dense + learned sparse + ColBERT retrieval
-  -> BGE cross-encoder reranking
-  -> learned child->parent attribution-risk gate
-  -> independent learned parent->section/document gate
-  -> parent-vs-child reranker guard and rollback
-  -> token-budgeted context construction
-  -> structured LLM claim generation (OpenAI or Gemini)
-  -> claim-level NLI verification
-  -> answer + page/source evidence + diagnostic metrics
+Vietnamese query
+      +
+Governed PDF collection
+      ↓
+Text / dense / visual page representations
+      ↓
+Retrieval and ranking
+      ↓
+Top-k evidence pages
+      ↓
+Human-validated qrels and statistical evaluation
 ```
 
-The principal research component is the **attribution-risk-aware merge policy**.
-Counterfactual rollouts (KEEP / EXPAND / SECTION per candidate group) are scored
-with a reward that penalises claim-to-leaf attribution risk; an MLP trained on
-the resulting oracle labels replaces the hand-tuned utility comparison via the
-TorchScript checkpoint hook. Its inputs include relevance, evidence coverage,
-semantic coherence, evidence density, noise, token cost, and query type.
-The parent and section gates have separate checkpoints and can be disabled
-independently for clean ablations.
+Vi-ViDoRe evaluates the retrieval stage. It is not currently presented as a
+complete answer-generation or RAG benchmark.
 
-```json
-{
-  "parent_policy_checkpoint": "checkpoints/policy_parent_v5_final.ts",
-  "section_policy_checkpoint": "checkpoints/policy_section_v5_final.ts",
-  "policy_version": "v5"
+## Why Vi-ViDoRe
+
+Vietnamese document retrieval is difficult because evidence can appear in:
+
+- born-digital PDF text;
+- scanned pages with imperfect OCR;
+- tables and financial statements;
+- charts and figures;
+- forms and administrative layouts;
+- long, domain-specific documents.
+
+The benchmark combines realistic document conditions with explicit data
+governance so that benchmark results can be reproduced and legally audited.
+
+## Core contributions
+
+1. A multi-domain Vietnamese visual document retrieval benchmark.
+2. Document-level governance with source, license, page-scope, and checksum
+   tracking.
+3. Human-authored queries and independently judged page-level qrels.
+4. Comparable lexical, dense, hybrid, and visual retrieval baselines.
+5. Reproducible evaluation with paired tests, confidence intervals, and
+   Holm-Bonferroni correction.
+6. Subgroup analysis for domains, scans, tables, charts, forms, and document
+   types.
+
+## Current readiness
+
+| Component | Status |
+|---|---|
+| Packaging, tests, Docker, and dependency lock | Complete |
+| Governance and contamination tooling | Complete |
+| Baseline and significance-testing harness | Complete |
+| Annotation, pooling, and adjudication tooling | Complete |
+| PDF license and page-scope review | Human/legal action required |
+| Domain-source diversity | Additional sources required |
+| 355 expert-reviewed Vietnamese queries | In progress |
+| Scan, table, chart, and form coverage | Human curation required |
+| Double annotation and adjudication | Not complete |
+| Frozen benchmark and final test results | Not complete |
+
+The current benchmark candidate and any pilot scores are for pipeline debugging.
+They must not be reported as final paper results.
+
+## Retrieval systems
+
+The governed runner supports or is designed to compare:
+
+- BM25 over native text or OCR;
+- Vietnamese and multilingual dense retrievers;
+- hybrid lexical+dense retrieval;
+- ColPali/ColQwen-style visual multi-vector retrieval;
+- reciprocal-rank fusion over heterogeneous retrievers;
+- optional reranking and adaptation experiments.
+
+Mandatory baselines fail fast instead of silently recording missing runs as
+zero-valued results.
+
+## Data governance
+
+Each document is registered with:
+
+- stable document ID;
+- source organization and URL;
+- license and redistribution status;
+- approved page scope;
+- SHA-256 checksum;
+- domain and source type;
+- OCR/layout metadata;
+- split assignment.
+
+Governance checks cover duplicate PDFs, near-duplicate documents, split leakage,
+license completeness, source diversity, page-type balance, human-query ratios,
+and independent judgments.
+
+Raw PDFs are intentionally not distributed in this repository. Users must
+obtain documents from approved sources and follow their licenses.
+
+## Annotation workflow
+
+Candidate pages are pooled from BM25, dense, and visual retrievers using
+reciprocal-rank fusion. Two annotators independently judge each query-page pair,
+after which disagreements are adjudicated into final qrels.
+
+```text
+BM25 ──────────────┐
+Dense Vietnamese ──┤
+Multilingual dense ┼→ RRF pool → two annotators → adjudication → frozen qrels
+ColPali / ColQwen ─┘
+```
+
+See [ANNOTATION_GUIDELINE_v1.0.md](ANNOTATION_GUIDELINE_v1.0.md) and
+[data/governance/DATA_GOVERNANCE_POLICY.md](data/governance/DATA_GOVERNANCE_POLICY.md).
+
+## Installation
+
+Python 3.10 or 3.11 is recommended.
+
+```bash
+git clone https://github.com/Ducduyzs/Vi-ViDoRe-A-Governed-Multi-Domain-Benchmark-for-Vietnamese-Visual-Document-Retrieval.git
+cd Vi-ViDoRe-A-Governed-Multi-Domain-Benchmark-for-Vietnamese-Visual-Document-Retrieval
+
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# Linux/macOS: source .venv/bin/activate
+
+python -m pip install --upgrade pip
+python -m pip install -e ".[dev]"
+python -m pytest -q
+```
+
+Dependencies are recorded in `requirements.lock`. API credentials, local
+configuration, office documents, and raw PDFs are excluded from Git.
+
+## Governance commands
+
+```bash
+python scripts/validate_registry.py
+python scripts/verify_licenses.py
+python scripts/contamination_report.py
+```
+
+All blocking findings must be resolved before freezing the benchmark.
+
+## Annotation pilot
+
+```bash
+python scripts/create_pilot100_template.py
+python scripts/pilot_tracker.py assign annotator_A 25
+python scripts/adjudicate.py ann_A.tsv ann_B.tsv qrels_final.tsv report.json
+```
+
+The pilot is used to refine the guideline and measure inter-annotator
+agreement before scaling annotation.
+
+## Freeze the benchmark
+
+```bash
+python scripts/05_build_governed_benchmark.py --freeze
+```
+
+Freezing is permitted only when the governance gates pass. The frozen release
+must record dataset version, manifest hashes, qrels hash, random seeds, model
+revisions, annotation-guideline version, and contamination report.
+
+## Run governed baselines
+
+Development experiments should use the dev split. The test split should be run
+only after models and thresholds are locked.
+
+```bash
+python scripts/03_run_baselines.py --split dev
+python scripts/03_run_baselines.py --split test
+```
+
+Reports include runtime metadata and subgroup results. Missing subgroups are
+reported as `N/A (n=0)`, not as `0.0`.
+
+## Evaluation
+
+Primary retrieval metrics include:
+
+- Recall@k and Hit Rate@k;
+- MRR;
+- nDCG@k;
+- macro results across domains;
+- paired confidence intervals and randomization tests;
+- Holm-Bonferroni-corrected comparisons;
+- latency, memory, and index-size measurements.
+
+Results are also decomposed by domain, source type, scan status, page type, and
+query difficulty.
+
+## Repository layout
+
+```text
+src/data/           PDF processing, schema, deduplication, query sanitation
+src/models/         BM25, dense, visual retrieval, and MaxSim
+src/evaluation/     Metrics, significance testing, and report generation
+src/training/       Adaptation and hard-negative mining
+scripts/            Governance, annotation, benchmark, and experiment commands
+tests/              Unit and integration tests
+data/governance/    Registry, policies, and freeze criteria
+```
+
+## Reproducibility and responsible release
+
+Before reporting final results:
+
+1. resolve every license and page-scope blocker;
+2. complete expert query review;
+3. double-annotate and adjudicate dev/test qrels;
+4. freeze manifests before final experiments;
+5. lock code, configuration, model revisions, and seeds;
+6. run the test split once under the frozen protocol;
+7. publish confidence intervals, corrected significance tests, and failure
+   analysis.
+
+See [BENCHMARK_SUBMISSION_CHECKLIST.md](BENCHMARK_SUBMISSION_CHECKLIST.md),
+[DATASET_CARD.md](DATASET_CARD.md), and [MODEL_CARD.md](MODEL_CARD.md).
+
+## License
+
+Code is released under the [MIT License](LICENSE). Document licenses remain
+source-specific and are tracked in the governance registry. Benchmark
+annotations must not be released until their legal and human-validation gates
+have passed.
+
+## Citation
+
+```bibtex
+@misc{vi_vidore_2026,
+  title  = {Vi-ViDoRe: A Governed Multi-Domain Benchmark for Vietnamese Visual Document Retrieval},
+  author = {Vi-ViDoRe Contributors},
+  year   = {2026},
+  note   = {Benchmark candidate; not yet frozen}
 }
 ```
-
-## Why this is not ordinary hierarchical RAG
-
-- Every child is represented jointly by BGE-M3 dense, learned-sparse, and multi-vector embeddings.
-- Hierarchical expansion is decided per query and per parent, not fixed globally.
-- Expansion is optimized around evidence density and context cost.
-- A second neural relevance test can roll back a merge that loses specificity.
-- Generation emits atomic claims with context IDs; NLI removes claims unsupported by cited passages.
-- Parent evidence is always traceable back to leaf child nodes.
-
-## Install
-
-Python 3.11 and a CUDA GPU are recommended.
-
-```powershell
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -e ".[gpu,dev]"
-Copy-Item config.example.json config.json
-$env:GEMINI_API_KEY="your-key"
-```
-
-Use `faiss-gpu` instead of `faiss-cpu` when a compatible CUDA build is available. Model weights are downloaded on first use.
-
-## Ask a question
-
-```powershell
-edahr paper-a.pdf paper-b.pdf --question "How does the proposed method improve evidence retrieval?" --config config.json
-```
-
-The command prints structured JSON containing verified claims, traceable evidence, retrieval scores, merge decisions, rollback events, and efficiency metrics.
-
-## Evaluation plan
-
-Measure retrieval with Recall@k, MRR and nDCG; grounding with citation precision/recall and NLI support; answering with EM/F1 or LLM-as-judge; efficiency with context tokens and latency. The core ablations are:
-
-1. dense only vs dense+sparse vs dense+sparse+ColBERT;
-2. flat child retrieval vs fixed parent expansion vs adaptive merging;
-3. policy without evidence-density features;
-4. policy without rollback;
-5. generation without claim-level NLI verification.
-
-The recommended training target for the merge policy is downstream utility: answer/citation quality gain minus token and latency cost. Oracle labels can be generated by evaluating both the parent and child alternatives for every candidate group.
-
-## Project structure
-
-- `src/edahr/ingestion.py`: Docling scientific PDF ingestion.
-- `src/edahr/hierarchy.py`: deterministic hierarchy and leaf provenance.
-- `src/edahr/index.py`: BGE-M3 multi-representation retrieval.
-- `src/edahr/policy.py`: merge policies (calibrated prior / learned checkpoint).
-- `src/edahr/attribution.py`: claim-to-leaf attribution risk AR(S) family.
-- `src/edahr/rollouts.py`: counterfactual KEEP/EXPAND/SECTION rollout harness.
-- `src/edahr/training.py`: MLP training on rollout labels -> TorchScript policy.
-- `src/edahr/invariants.py`: hierarchy provenance/overlap invariants.
-- `src/edahr/context.py`: utility-ranked token budgeting.
-- `src/edahr/models.py`: neural model and LLM adapters.
-- `src/edahr/verification.py`: claim-level entailment filter.
-- `src/edahr/pipeline.py`: end-to-end orchestration.
-- `src/edahr/evaluation.py`: initial experimental metrics.
-
-## Current boundary
-
-This repository contains the complete executable pipeline and offline orchestration tests. A full scientific benchmark still requires downloading model weights, providing an LLM key, and selecting a labeled corpus such as QASPER or SciFact. The merge policy supports a TorchScript checkpoint; until trained, it uses an explicit calibrated prior so experiments remain reproducible.
-Exact rollout, training, decomposition and verification commands are recorded
-in `analysis/repro_commands.md`; current evidence status is in `analysis/v5_execution_log.md`.
