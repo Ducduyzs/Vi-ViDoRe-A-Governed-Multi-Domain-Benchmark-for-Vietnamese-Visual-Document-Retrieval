@@ -44,9 +44,7 @@ data/curated/
 data/benchmark/
 data/benchmark_governed_v0_1/
 data/artifacts/
-data/qasper/
 data/manifests/
-data/scifact/
 data/*.progress
 !data/governance/
 data/governance/*.invalid.csv
