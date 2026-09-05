@@ -1,18 +1,18 @@
 # Vi-ViDoRe: A Governed Multi-Domain Benchmark for Vietnamese Visual Document Retrieval
 
-Vi-ViDoRe is a governed benchmark for evaluating text, dense, hybrid, and
-vision-language retrieval over real Vietnamese PDF documents. It focuses on
-finding the correct evidence page for a Vietnamese query across legal,
-financial, healthcare, and education domains.
+Vi-ViDoRe is a **research-oriented benchmark project** for Vietnamese visual document retrieval. This repository is the working research codebase for building and auditing a governed benchmark, running retrieval baselines, supporting human annotation, and evaluating results with reproducible statistical testing.
 
-> **Status:** benchmark candidate — infrastructure is implemented, but the
-> dataset is not frozen or publication-ready until the remaining legal review,
-> human query authoring, and double-annotation requirements are completed.
+This is **not only an application repository**. It is intended to support research on how retrieval systems find evidence pages in real Vietnamese PDF documents across domains such as legal, finance, healthcare, and education.
 
-## Research scope
+> **Research status:** the repository is currently an **alpha benchmark candidate**. The codebase is implemented enough for experimentation, but the dataset is **not yet frozen** and must not be presented as a final publication-ready benchmark until governance, annotation, and freeze gates are completed.
 
-Given a Vietnamese query and a collection of PDF pages, a system must rank the
-pages that contain relevant evidence.
+## Research motivation
+
+Vietnamese document retrieval is difficult because relevant evidence may appear in scanned pages, OCR-noisy text, tables, charts, forms, and long structured PDFs. Text-only retrieval can struggle in these settings. Vi-ViDoRe is designed to study whether dense and visual multi-vector retrieval methods can better recover evidence pages under realistic document conditions.
+
+## Research objective
+
+Given a Vietnamese query and a governed corpus of PDF pages, a system must rank the pages that contain relevant evidence.
 
 ```text
 Vietnamese query
@@ -28,102 +28,68 @@ Top-k evidence pages
 Human-validated qrels and statistical evaluation
 ```
 
-Vi-ViDoRe evaluates the retrieval stage. It is not currently presented as a
-complete answer-generation or RAG benchmark.
+The project evaluates **retrieval quality**, not answer generation. Its role is closer to an evidence-retrieval benchmark than to a full RAG benchmark.
 
-## Why Vi-ViDoRe
+## Research questions
 
-Vietnamese document retrieval is difficult because evidence can appear in:
+This repository is structured around questions such as:
 
-- born-digital PDF text;
-- scanned pages with imperfect OCR;
-- tables and financial statements;
-- charts and figures;
-- forms and administrative layouts;
-- long, domain-specific documents.
+1. How much do visual retrievers help on Vietnamese document pages compared with lexical and dense baselines?
+2. Which page conditions benefit most from visual retrieval, such as scans, tables, charts, and forms?
+3. How should a Vietnamese retrieval benchmark be governed so that legal, scientific, and annotation risks remain auditable?
+4. How much performance variance appears across legal, finance, healthcare, and education domains?
+5. Which improvements remain statistically reliable after paired significance tests and multiple-comparison correction?
 
-The benchmark combines realistic document conditions with explicit data
-governance so that benchmark results can be reproduced and legally audited.
+## What the repository currently contains
 
-## Core contributions
+The current folder state includes:
 
-1. A multi-domain Vietnamese visual document retrieval benchmark.
-2. Document-level governance with source, license, page-scope, and checksum
-   tracking.
-3. Human-authored queries and independently judged page-level qrels.
-4. Comparable lexical, dense, hybrid, and visual retrieval baselines.
-5. Reproducible evaluation with paired tests, confidence intervals, and
-   Holm-Bonferroni correction.
-6. Subgroup analysis for domains, scans, tables, charts, forms, and document
-   types.
+- benchmark-building scripts in `scripts/`;
+- source code in `src/` for data processing, models, training, and evaluation;
+- tests in `tests/`;
+- governance files in `data/governance/`;
+- research-support documents including `DATASET_CARD.md`, `MODEL_CARD.md`, `AI_AUDIT_REPORT.md`, `PUBLICATION_READINESS_REVIEW.md`, and `BENCHMARK_SUBMISSION_CHECKLIST.md`;
+- reproducibility files including `pyproject.toml`, `requirements.lock`, `.pre-commit-config.yaml`, `Dockerfile`, and `docker-compose.yml`.
 
-## Current readiness
+The repository does **not** currently include raw source PDFs, a frozen benchmark release, or final paper-ready leaderboard results.
 
-| Component | Status |
+## Current benchmark status
+
+| Component | Current state |
 |---|---|
-| Packaging, tests, Docker, and dependency lock | Complete |
-| Governance and contamination tooling | Complete |
-| Baseline and significance-testing harness | Complete |
-| Annotation, pooling, and adjudication tooling | Complete |
-| PDF license and page-scope review | Human/legal action required |
-| Domain-source diversity | Additional sources required |
-| 355 expert-reviewed Vietnamese queries | In progress |
-| Scan, table, chart, and form coverage | Human curation required |
-| Double annotation and adjudication | Not complete |
-| Frozen benchmark and final test results | Not complete |
+| Research codebase | Implemented |
+| Governance workflow | Implemented |
+| Annotation tooling | Implemented |
+| Baseline evaluation pipeline | Implemented |
+| Statistical testing | Implemented |
+| Test suite | Present |
+| Human-reviewed final dataset | Incomplete |
+| Frozen benchmark manifest | Not available yet |
+| Publication-ready results | Not available yet |
 
-The current benchmark candidate and any pilot scores are for pipeline debugging.
-They must not be reported as final paper results.
+## Core research contributions
 
-## Retrieval systems
+1. A governed Vietnamese visual document retrieval benchmark pipeline.
+2. Document-level provenance, licensing, and freeze-gate checks.
+3. Support for BM25, dense bi-encoders, hybrid retrieval, and visual multi-vector retrievers.
+4. A human annotation workflow with pooling, double judgment, and adjudication.
+5. A reproducible evaluation stack with confidence intervals, paired tests, and multiple-comparison correction.
 
-The governed runner supports or is designed to compare:
+## Main workflows
 
-- BM25 over native text or OCR;
-- Vietnamese and multilingual dense retrievers;
-- hybrid lexical+dense retrieval;
-- ColPali/ColQwen-style visual multi-vector retrieval;
-- reciprocal-rank fusion over heterogeneous retrievers;
-- optional reranking and adaptation experiments.
-
-Mandatory baselines fail fast instead of silently recording missing runs as
-zero-valued results.
-
-## Data governance
-
-Each document is registered with:
-
-- stable document ID;
-- source organization and URL;
-- license and redistribution status;
-- approved page scope;
-- SHA-256 checksum;
-- domain and source type;
-- OCR/layout metadata;
-- split assignment.
-
-Governance checks cover duplicate PDFs, near-duplicate documents, split leakage,
-license completeness, source diversity, page-type balance, human-query ratios,
-and independent judgments.
-
-Raw PDFs are intentionally not distributed in this repository. Users must
-obtain documents from approved sources and follow their licenses.
-
-## Annotation workflow
-
-Candidate pages are pooled from BM25, dense, and visual retrievers using
-reciprocal-rank fusion. Two annotators independently judge each query-page pair,
-after which disagreements are adjudicated into final qrels.
-
-```text
-BM25 ──────────────┐
-Dense Vietnamese ──┤
-Multilingual dense ┼→ RRF pool → two annotators → adjudication → frozen qrels
-ColPali / ColQwen ─┘
+```bash
+python scripts/validate_registry.py
+python scripts/verify_licenses.py
+python scripts/contamination_report.py
+python scripts/05_build_governed_benchmark.py
+python scripts/05_build_governed_benchmark.py --freeze
+python scripts/create_pilot100_template.py
+python scripts/pool_candidates.py
+python scripts/adjudicate.py ann_A.tsv ann_B.tsv qrels_final.tsv report.json
+python scripts/03_run_baselines.py --split dev
+python scripts/03_run_baselines.py --split test --debug
+python scripts/04_train_adaptation.py
 ```
-
-See [ANNOTATION_GUIDELINE_v1.0.md](ANNOTATION_GUIDELINE_v1.0.md) and
-[data/governance/DATA_GOVERNANCE_POLICY.md](data/governance/DATA_GOVERNANCE_POLICY.md).
 
 ## Installation
 
@@ -142,102 +108,18 @@ python -m pip install -e ".[dev]"
 python -m pytest -q
 ```
 
-Dependencies are recorded in `requirements.lock`. API credentials, local
-configuration, office documents, and raw PDFs are excluded from Git.
+## Important documents
 
-## Governance commands
-
-```bash
-python scripts/validate_registry.py
-python scripts/verify_licenses.py
-python scripts/contamination_report.py
-```
-
-All blocking findings must be resolved before freezing the benchmark.
-
-## Annotation pilot
-
-```bash
-python scripts/create_pilot100_template.py
-python scripts/pilot_tracker.py assign annotator_A 25
-python scripts/adjudicate.py ann_A.tsv ann_B.tsv qrels_final.tsv report.json
-```
-
-The pilot is used to refine the guideline and measure inter-annotator
-agreement before scaling annotation.
-
-## Freeze the benchmark
-
-```bash
-python scripts/05_build_governed_benchmark.py --freeze
-```
-
-Freezing is permitted only when the governance gates pass. The frozen release
-must record dataset version, manifest hashes, qrels hash, random seeds, model
-revisions, annotation-guideline version, and contamination report.
-
-## Run governed baselines
-
-Development experiments should use the dev split. The test split should be run
-only after models and thresholds are locked.
-
-```bash
-python scripts/03_run_baselines.py --split dev
-python scripts/03_run_baselines.py --split test
-```
-
-Reports include runtime metadata and subgroup results. Missing subgroups are
-reported as `N/A (n=0)`, not as `0.0`.
-
-## Evaluation
-
-Primary retrieval metrics include:
-
-- Recall@k and Hit Rate@k;
-- MRR;
-- nDCG@k;
-- macro results across domains;
-- paired confidence intervals and randomization tests;
-- Holm-Bonferroni-corrected comparisons;
-- latency, memory, and index-size measurements.
-
-Results are also decomposed by domain, source type, scan status, page type, and
-query difficulty.
-
-## Repository layout
-
-```text
-src/data/           PDF processing, schema, deduplication, query sanitation
-src/models/         BM25, dense, visual retrieval, and MaxSim
-src/evaluation/     Metrics, significance testing, and report generation
-src/training/       Adaptation and hard-negative mining
-scripts/            Governance, annotation, benchmark, and experiment commands
-tests/              Unit and integration tests
-data/governance/    Registry, policies, and freeze criteria
-```
-
-## Reproducibility and responsible release
-
-Before reporting final results:
-
-1. resolve every license and page-scope blocker;
-2. complete expert query review;
-3. double-annotate and adjudicate dev/test qrels;
-4. freeze manifests before final experiments;
-5. lock code, configuration, model revisions, and seeds;
-6. run the test split once under the frozen protocol;
-7. publish confidence intervals, corrected significance tests, and failure
-   analysis.
-
-See [BENCHMARK_SUBMISSION_CHECKLIST.md](BENCHMARK_SUBMISSION_CHECKLIST.md),
-[DATASET_CARD.md](DATASET_CARD.md), and [MODEL_CARD.md](MODEL_CARD.md).
+- `DATASET_CARD.md`
+- `MODEL_CARD.md`
+- `ANNOTATION_GUIDELINE_v1.0.md`
+- `PUBLICATION_READINESS_REVIEW.md`
+- `BENCHMARK_SUBMISSION_CHECKLIST.md`
+- `CHANGELOG.md`
 
 ## License
 
-Code is released under the [MIT License](LICENSE). Document licenses remain
-source-specific and are tracked in the governance registry. Benchmark
-annotations must not be released until their legal and human-validation gates
-have passed.
+Code is released under the `MIT License`. Document licenses remain source-specific and must be tracked through the governance workflow.
 
 ## Citation
 
@@ -246,6 +128,6 @@ have passed.
   title  = {Vi-ViDoRe: A Governed Multi-Domain Benchmark for Vietnamese Visual Document Retrieval},
   author = {Vi-ViDoRe Contributors},
   year   = {2026},
-  note   = {Benchmark candidate; not yet frozen}
+      note   = {Alpha benchmark candidate; dataset not yet frozen}
 }
 ```
